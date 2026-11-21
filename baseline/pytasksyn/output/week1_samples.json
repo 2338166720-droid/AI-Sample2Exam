@@ -1,0 +1,97 @@
+[
+  {
+    "title": "数组反转基础练习题",
+    "description": "实现一个基础的数组反转操作函数，完成指定功能。",
+    "input_example": "[1,2,3,4,5]",
+    "output_example": "[5,4,3,2,1]",
+    "test_cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[3,2,1]"
+      },
+      {
+        "input": "[10,20]",
+        "output": "[20,10]"
+      }
+    ],
+    "difficulty": "medium",
+    "knowledge_point": "数组反转",
+    "source": "offline_mock"
+  },
+  {
+    "title": "链表遍历基础练习题",
+    "description": "实现一个基础的链表遍历操作函数，完成指定功能。",
+    "input_example": "[1,2,3,4,5]",
+    "output_example": "[5,4,3,2,1]",
+    "test_cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[3,2,1]"
+      },
+      {
+        "input": "[10,20]",
+        "output": "[20,10]"
+      }
+    ],
+    "difficulty": "medium",
+    "knowledge_point": "链表遍历",
+    "source": "offline_mock"
+  },
+  {
+    "title": "栈的括号匹配基础练习题",
+    "description": "实现一个基础的栈的括号匹配操作函数，完成指定功能。",
+    "input_example": "[1,2,3,4,5]",
+    "output_example": "[5,4,3,2,1]",
+    "test_cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[3,2,1]"
+      },
+      {
+        "input": "[10,20]",
+        "output": "[20,10]"
+      }
+    ],
+    "difficulty": "medium",
+    "knowledge_point": "栈的括号匹配",
+    "source": "offline_mock"
+  },
+  {
+    "title": "二分查找基础练习题",
+    "description": "实现一个基础的二分查找操作函数，完成指定功能。",
+    "input_example": "[1,2,3,4,5]",
+    "output_example": "[5,4,3,2,1]",
+    "test_cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[3,2,1]"
+      },
+      {
+        "input": "[10,20]",
+        "output": "[20,10]"
+      }
+    ],
+    "difficulty": "medium",
+    "knowledge_point": "二分查找",
+    "source": "offline_mock"
+  },
+  {
+    "title": "冒泡排序基础练习题",
+    "description": "实现一个基础的冒泡排序操作函数，完成指定功能。",
+    "input_example": "[1,2,3,4,5]",
+    "output_example": "[5,4,3,2,1]",
+    "test_cases": [
+      {
+        "input": "[1,2,3]",
+        "output": "[3,2,1]"
+      },
+      {
+        "input": "[10,20]",
+        "output": "[20,10]"
+      }
+    ],
+    "difficulty": "medium",
+    "knowledge_point": "冒泡排序",
+    "source": "offline_mock"
+  }
+]
