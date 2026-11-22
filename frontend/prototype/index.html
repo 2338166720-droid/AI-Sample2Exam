@@ -1,0 +1,1647 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-Sample2Exam · 408 最小系统原型</title>
+  <style>
+    :root {
+      --bg: #eef2f1;
+      --surface: #ffffff;
+      --surface-2: #e8efee;
+      --paper: #fcf8ee;
+      --paper-deep: #f4eddd;
+      --ink: #17252d;
+      --muted: #62727a;
+      --line: #d3dddb;
+      --accent: #275f7e;
+      --accent-dark: #17445d;
+      --green: #245e49;
+      --green-soft: #e4eee7;
+      --amber: #99690a;
+      --amber-soft: #fff2ce;
+      --red: #a53d3d;
+      --red-soft: #fbe8e6;
+      --blue: #345f8e;
+      --blue-soft: #e7eef7;
+      --shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 14px 34px rgba(29, 48, 57, .08);
+      --radius: 12px;
+      --serif: "Songti SC", "SimSun", "Noto Serif CJK SC", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 6%, rgba(255, 255, 255, .9), transparent 25rem),
+        radial-gradient(circle at 88% 12%, rgba(39, 95, 126, .08), transparent 27rem),
+        linear-gradient(rgba(63, 89, 100, .026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(63, 89, 100, .026) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, auto, 32px 32px, 32px 32px, auto;
+      font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      line-height: 1.55;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .32;
+      background-image:
+        radial-gradient(circle at 15% 25%, rgba(35, 70, 80, .08) 0 .6px, transparent .9px),
+        radial-gradient(circle at 73% 61%, rgba(35, 70, 80, .06) 0 .5px, transparent .8px);
+      background-size: 19px 23px, 27px 31px;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(214, 90, 49, .3);
+      outline-offset: 2px;
+    }
+    [hidden] { display: none !important; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 70px;
+      padding: 12px clamp(18px, 4vw, 54px);
+      border-bottom: 3px double rgba(39, 65, 77, .28);
+      background: rgba(246, 249, 248, .94);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 13px; min-width: 250px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      color: var(--accent);
+      background: #fff;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 3px rgba(39, 95, 126, .08);
+    }
+    .brand strong { display: block; font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif; font-size: 18px; letter-spacing: .01em; }
+    .brand small { color: var(--muted); }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .demo-tag {
+      padding: 6px 10px;
+      border: 1px solid #e0c57c;
+      border-radius: 999px;
+      color: #74520b;
+      background: var(--amber-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .role-switch {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 253, 248, .8);
+    }
+    .role-switch button {
+      padding: 7px 14px;
+      border: 0;
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+    }
+    .role-switch button.active { color: #fff; background: var(--ink); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 235px minmax(0, 1fr);
+      gap: 26px;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px clamp(16px, 3vw, 42px) 60px;
+    }
+    .sidebar {
+      position: sticky;
+      top: 94px;
+      align-self: start;
+      padding: 18px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(250, 252, 251, .9);
+      box-shadow: var(--shadow);
+    }
+    .sidebar-label {
+      margin: 0 8px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .nav-list { display: grid; gap: 5px; }
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 11px;
+      color: #46514b;
+      background: transparent;
+      text-align: left;
+    }
+    .nav-btn:hover { background: rgba(217, 210, 196, .45); }
+    .nav-btn.active { color: var(--accent-dark); background: var(--surface-2); font-weight: 800; }
+    .nav-index {
+      display: inline-grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      border-radius: 8px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .7);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .nav-btn.active .nav-index { color: #fff; background: var(--accent); }
+    .sidebar-note {
+      margin-top: 18px;
+      padding: 13px;
+      border-radius: 12px;
+      color: #5f5a4d;
+      background: #f9f3e6;
+      font-size: 12px;
+    }
+
+    main { min-width: 0; }
+    .page { display: none; animation: rise .32s ease; }
+    .page.active { display: block; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin: 6px 0 20px;
+    }
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 5px; font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif; font-size: clamp(29px, 4vw, 43px); line-height: 1.14; letter-spacing: -.02em; }
+    h2 { margin-bottom: 6px; font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif; font-size: 20px; letter-spacing: -.01em; }
+    h3 { margin-bottom: 6px; font-family: var(--serif); font-size: 16px; }
+    .subtitle { max-width: 760px; margin-bottom: 0; color: var(--muted); }
+    .head-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 9px 15px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--surface);
+      font-weight: 700;
+      text-decoration: none;
+      transition: .18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: #bfb5a4; box-shadow: 0 5px 16px rgba(30, 35, 31, .08); }
+    .btn.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+    .btn.primary:hover { background: var(--accent-dark); }
+    .btn.green { border-color: var(--green); color: #fff; background: var(--green); }
+    .btn.ghost { background: transparent; }
+    .btn.small { min-height: 32px; padding: 6px 10px; font-size: 13px; }
+    .btn.danger { color: var(--red); border-color: #e1b3ad; background: var(--red-soft); }
+    .btn[disabled] { cursor: not-allowed; opacity: .45; transform: none; box-shadow: none; }
+
+    .card {
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .96);
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .card.flat { box-shadow: none; }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .span-2 { grid-column: span 2; }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 218px;
+      padding: clamp(25px, 5vw, 45px);
+      border-radius: 4px;
+      color: #fff;
+      background:
+        linear-gradient(120deg, rgba(20, 53, 70, .99), rgba(32, 91, 113, .91)),
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+      background-size: auto, 32px 32px, 32px 32px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      box-shadow: var(--shadow);
+    }
+    .hero-card::after {
+      content: "408";
+      position: absolute;
+      right: 28px;
+      bottom: -35px;
+      color: rgba(255, 255, 255, .07);
+      font-family: Georgia, serif;
+      font-size: 180px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .hero-card p { max-width: 650px; color: rgba(255, 255, 255, .72); }
+    .hero-card .hero-actions { position: relative; z-index: 1; margin-top: 24px; }
+    .hero-kicker { color: #f4b79e; font-size: 12px; font-weight: 800; letter-spacing: .12em; }
+
+    .stat {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .82);
+    }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .stat strong { display: block; margin: 4px 0 0; font-family: Georgia, serif; font-size: 27px; }
+    .stat small { color: var(--muted); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(100px, 1fr));
+      gap: 8px;
+      margin: 18px 0 3px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+    }
+    .flow-step {
+      position: relative;
+      min-width: 110px;
+      padding: 12px 12px 11px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      font-size: 12px;
+    }
+    .flow-step b { display: block; margin-bottom: 3px; font-size: 13px; }
+    .flow-step.done { border-color: #9fc8b4; background: var(--green-soft); }
+    .flow-step.current { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(214, 90, 49, .12); }
+    .flow-step span { color: var(--muted); }
+
+    .section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
+    .section-title h2, .section-title p { margin-bottom: 0; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; }
+    .mono { font-family: "Cascadia Code", Consolas, monospace; }
+
+    .dropzone {
+      display: grid;
+      place-items: center;
+      min-height: 270px;
+      padding: 30px;
+      border: 2px dashed #c9bfae;
+      border-radius: 18px;
+      background:
+        linear-gradient(rgba(255, 253, 248, .86), rgba(255, 253, 248, .86)),
+        repeating-linear-gradient(45deg, #f4eee2 0 10px, #eee7da 10px 20px);
+      text-align: center;
+    }
+    .dropzone.dragging { border-color: var(--accent); background: #fff6ee; }
+    .upload-icon {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 12px;
+      border-radius: 18px;
+      color: var(--accent);
+      background: #fae5da;
+      font-size: 27px;
+      font-weight: 800;
+    }
+    .link-btn { padding: 0; border: 0; color: var(--accent); background: transparent; font-weight: 800; text-decoration: underline; }
+    .progress-wrap { margin-top: 18px; }
+    .progress-label { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 13px; }
+    .progress { height: 9px; overflow: hidden; border-radius: 999px; background: #e7e0d3; }
+    .progress > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .35s ease; }
+    .parse-log {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      margin-top: 16px;
+      padding: 13px;
+      border-radius: 13px;
+      color: #d8e8df;
+      background: #1d2923;
+      font: 12px/1.65 "Cascadia Code", Consolas, monospace;
+    }
+    .parse-log div { opacity: .45; }
+    .parse-log div.on { opacity: 1; }
+    .parse-log div.on::before { content: "✓ "; color: #8ad0ad; }
+
+    .field { display: grid; gap: 6px; }
+    .field label { color: #49534e; font-size: 12px; font-weight: 800; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      background: #fffefa;
+    }
+    .field input, .field select { min-height: 40px; padding: 8px 10px; }
+    .field textarea { padding: 10px; resize: vertical; }
+    .field-note { color: var(--muted); font-size: 11px; }
+    .form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+
+    .subject-row {
+      display: grid;
+      grid-template-columns: 1.2fr 2.5fr 56px;
+      align-items: center;
+      gap: 13px;
+      padding: 11px 0;
+      border-bottom: 1px solid #ece5da;
+    }
+    .subject-row:last-child { border-bottom: 0; }
+    .subject-code { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--accent-dark); background: #f8e5dd; font-weight: 900; }
+    .bar { height: 8px; overflow: hidden; border-radius: 999px; background: #eee8dc; }
+    .bar span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+    .bar.orange span { background: var(--accent); }
+    .bar.blue span { background: var(--blue); }
+    .bar.amber span { background: var(--amber); }
+    .count { text-align: right; font-weight: 800; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      color: #435149;
+      background: var(--surface-2);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .chip.green { color: var(--green); background: var(--green-soft); }
+    .chip.amber { color: var(--amber); background: var(--amber-soft); }
+    .chip.red { color: var(--red); background: var(--red-soft); }
+    .chip.blue { color: var(--blue); background: var(--blue-soft); }
+
+    .check-list { display: grid; gap: 9px; }
+    .check-row {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border: 1px solid #e7dfd2;
+      border-radius: 2px;
+      background: rgba(255, 253, 246, .78);
+    }
+    .check-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; color: var(--green); background: var(--green-soft); font-weight: 900; }
+    .check-icon.warn { color: var(--amber); background: var(--amber-soft); }
+    .check-row b { display: block; font-size: 13px; }
+    .check-row small { color: var(--muted); }
+
+    .notice {
+      padding: 12px 14px;
+      border-left: 4px solid var(--amber);
+      border-radius: 8px;
+      color: #70560f;
+      background: var(--amber-soft);
+      font-size: 13px;
+    }
+    .notice.info { border-color: var(--blue); color: #304f74; background: var(--blue-soft); }
+    .notice.success { border-color: var(--green); color: #23533f; background: var(--green-soft); }
+
+    .question-card {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background:
+        linear-gradient(90deg, transparent 0 26px, rgba(182, 69, 49, .13) 26px 27px, transparent 27px),
+        repeating-linear-gradient(0deg, rgba(74, 58, 35, .025) 0 1px, transparent 1px 4px),
+        var(--paper);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 7px 20px rgba(58, 45, 28, .06);
+    }
+    .question-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+    .question-title { margin: 0 0 11px; font-family: var(--serif); font-size: 16px; line-height: 1.72; }
+    .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .option { padding: 8px 10px; border: 1px solid #d8cebb; border-radius: 2px; background: rgba(255, 253, 246, .72); font-size: 13px; }
+    .question-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; }
+    .review-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid #e9e2d7; text-align: left; vertical-align: top; }
+    th { color: var(--muted); background: #f8f4ec; font-size: 11px; letter-spacing: .03em; }
+    tbody tr:hover { background: #fffaf2; }
+
+    .paper-preview {
+      position: relative;
+      width: min(100%, 860px);
+      min-height: 1040px;
+      margin-inline: auto;
+      padding: 72px 70px 58px 94px;
+      border: 1px solid #c5b9a3;
+      border-radius: 1px;
+      background:
+        linear-gradient(90deg, transparent 0 72px, rgba(176, 70, 52, .2) 72px 73px, transparent 73px),
+        linear-gradient(180deg, rgba(255, 255, 255, .4), transparent 140px),
+        repeating-linear-gradient(0deg, rgba(72, 57, 35, .022) 0 1px, transparent 1px 4px),
+        #fdf9ef;
+      box-shadow:
+        -7px 9px 0 -3px #e7ddcc,
+        0 30px 65px rgba(47, 38, 24, .17);
+    }
+    .paper-preview::before {
+      content: "密封线内不要答题";
+      position: absolute;
+      top: 92px;
+      left: 25px;
+      color: rgba(73, 66, 53, .58);
+      font-family: var(--serif);
+      font-size: 11px;
+      letter-spacing: .32em;
+      writing-mode: vertical-rl;
+    }
+    .paper-preview::after {
+      content: "408";
+      position: absolute;
+      right: 32px;
+      bottom: 44px;
+      color: rgba(182, 69, 49, .055);
+      font: 700 104px/1 Georgia, serif;
+      transform: rotate(-9deg);
+      pointer-events: none;
+    }
+    .paper-preview h2 { margin: 12px 0 6px; text-align: center; font-family: var(--serif); font-size: 25px; letter-spacing: .08em; }
+    .paper-sub { text-align: center; color: var(--muted); font-family: var(--serif); }
+    .paper-rule { height: 3px; margin: 18px 0 12px; background: var(--ink); box-shadow: 0 5px 0 -3px var(--ink); }
+    .paper-block { margin: 20px 0; font-family: var(--serif); font-size: 14px; line-height: 2; }
+    .paper-block b { font-family: inherit; }
+    .paper-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 4px;
+    }
+    .paper-topline .paper-issue { color: var(--muted); font: 11px/1.6 "Cascadia Code", Consolas, monospace; }
+    .paper-seal {
+      display: grid;
+      place-items: center;
+      width: 76px;
+      height: 76px;
+      flex: 0 0 76px;
+      border: 2px solid rgba(164, 61, 49, .74);
+      border-radius: 50%;
+      color: rgba(164, 61, 49, .84);
+      font: 700 11px/1.25 var(--serif);
+      text-align: center;
+      transform: rotate(7deg);
+      box-shadow: inset 0 0 0 3px #fdf9ef, inset 0 0 0 4px rgba(164, 61, 49, .42);
+    }
+    .exam-meta-grid {
+      display: grid;
+      grid-template-columns: 1.25fr .55fr .75fr;
+      border: 1px solid var(--ink);
+      border-bottom: 0;
+      margin-top: 18px;
+      font: 12px/1.65 var(--serif);
+    }
+    .exam-meta-grid > div { min-height: 44px; padding: 7px 10px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .exam-meta-grid > div:last-child { border-right: 0; }
+    .exam-meta-grid span { color: var(--muted); }
+    .exam-meta-grid b { font-weight: 700; }
+    .exam-score-table { display: grid; grid-template-columns: 64px repeat(3, 1fr) 76px; border-left: 1px solid var(--ink); margin-top: 14px; font: 12px/1.5 var(--serif); }
+    .exam-score-table > div { padding: 7px 8px; border: 1px solid var(--ink); border-left: 0; text-align: center; }
+    .exam-score-table .score-head { background: var(--paper-deep); font-weight: 700; }
+    .exam-note {
+      margin: 14px 0 20px;
+      padding: 10px 12px;
+      border: 1px solid #bdb19b;
+      background: rgba(246, 238, 220, .66);
+      font: 12px/1.75 var(--serif);
+    }
+    .exam-note b { letter-spacing: .08em; }
+    .exam-section {
+      margin: 24px 0 14px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid var(--ink);
+      font: 700 16px/1.5 var(--serif);
+    }
+    .exam-question { margin: 0 0 22px; font: 14px/1.95 var(--serif); }
+    .exam-question p { margin: 0 0 7px; }
+    .exam-choice-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
+    .exam-choice { display: flex; align-items: baseline; gap: 8px; }
+    .exam-choice::before {
+      content: attr(data-label);
+      display: inline-grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      flex: 0 0 21px;
+      border: 1px solid #6e685c;
+      border-radius: 50%;
+      font: 11px/1 var(--serif);
+    }
+    .exam-answer-lines { height: 56px; margin-top: 7px; border-bottom: 1px solid rgba(70, 65, 55, .24); }
+    .exam-footer {
+      position: absolute;
+      right: 56px;
+      bottom: 25px;
+      left: 94px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font: 10px/1.4 "Cascadia Code", Consolas, monospace;
+    }
+    .paper-stage {
+      margin-top: 18px;
+      padding: clamp(12px, 3vw, 28px);
+      border: 1px solid rgba(17, 38, 48, .22);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, .07), transparent 42%),
+        linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+        #263a43;
+      background-size: auto, 24px 24px, auto;
+      box-shadow: inset 0 0 65px rgba(0, 0, 0, .2);
+    }
+    .paper-stage-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      max-width: 860px;
+      margin: 0 auto 10px;
+      color: #d9e5e6;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .print-only { display: none; }
+
+    .student-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+      gap: 18px;
+    }
+    .student-hero .card:first-child { color: #fff; background: var(--green); }
+    .student-hero .card:first-child p { color: rgba(255, 255, 255, .72); }
+    .path-list { display: grid; gap: 10px; margin-top: 18px; }
+    .path-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, .17);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .08);
+    }
+    .path-item b, .path-item small { display: block; }
+    .path-item small { color: rgba(255, 255, 255, .67); }
+    .weak-list { display: grid; gap: 12px; margin-top: 14px; }
+    .weak-item { display: grid; grid-template-columns: 110px 1fr 40px; gap: 9px; align-items: center; font-size: 12px; }
+
+    .exam-shell { display: grid; grid-template-columns: minmax(0, 1fr) 235px; gap: 16px; align-items: start; }
+    .exam-nav {
+      position: sticky;
+      top: 94px;
+      padding: 16px;
+    }
+    .exam-nav .timer { margin-bottom: 14px; font-family: Georgia, serif; font-size: 31px; }
+    .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+    .number-grid button { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); font-size: 12px; }
+    .number-grid button.active { color: #fff; background: var(--accent); }
+    .number-grid button.answered { border-color: #9fc8b4; color: var(--green); background: var(--green-soft); }
+    .answer-list { display: grid; gap: 9px; margin: 15px 0; }
+    .answer-option { display: flex; gap: 9px; align-items: flex-start; padding: 11px; border: 1px solid #d8cebb; border-radius: 2px; background: rgba(255, 253, 246, .78); cursor: pointer; font-family: var(--serif); }
+    .answer-option:has(input:checked) { border-color: var(--accent); background: #fff4ec; }
+    .answer-option input { margin-top: 4px; }
+
+    .score-ring {
+      display: grid;
+      place-items: center;
+      width: 148px;
+      height: 148px;
+      margin: 12px auto;
+      border-radius: 50%;
+      color: var(--ink);
+      background: conic-gradient(var(--green) calc(var(--score, 67) * 1%), #e6e1d6 0);
+      position: relative;
+    }
+    .score-ring::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: var(--surface); }
+    .score-ring strong { position: relative; font-family: Georgia, serif; font-size: 38px; }
+    .score-ring span { position: relative; color: var(--muted); font-size: 11px; }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 50;
+      max-width: min(380px, calc(100vw - 48px));
+      padding: 13px 16px;
+      border-radius: 12px;
+      color: #fff;
+      background: #17241e;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, .2);
+      transform: translateY(24px);
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; padding: 10px; }
+      .sidebar-label, .sidebar-note { display: none; }
+      .nav-list { display: flex; flex-wrap: wrap; }
+      .nav-btn { width: auto; }
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .topbar { align-items: flex-start; }
+      .brand { min-width: 0; }
+      .brand small, .demo-tag { display: none; }
+      .page-head { align-items: flex-start; flex-direction: column; }
+      .grid-2, .grid-3, .grid-4, .student-hero, .exam-shell { grid-template-columns: 1fr; }
+      .span-2 { grid-column: span 1; }
+      .options { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: repeat(6, 125px); }
+      .exam-nav { position: static; }
+      .nav-index { display: none; }
+      .paper-stage { padding: 8px; }
+      .paper-preview { min-height: 850px; padding: 46px 24px 58px 38px; }
+      .paper-preview::before { left: 10px; font-size: 9px; }
+      .paper-preview h2 { font-size: 19px; }
+      .paper-seal { width: 58px; height: 58px; flex-basis: 58px; font-size: 9px; }
+      .exam-meta-grid { grid-template-columns: 1fr; }
+      .exam-meta-grid > div { border-right: 0; }
+      .exam-choice-row { grid-template-columns: 1fr; }
+      .exam-footer { right: 20px; left: 38px; }
+    }
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      body { background: #fff; }
+      body::before { display: none; }
+      .topbar, .sidebar, .page-head, .head-actions, .no-print, .toast { display: none !important; }
+      .layout { display: block; padding: 0; }
+      .page { display: none !important; }
+      .page.active { display: block !important; }
+      .paper-stage { padding: 0; border: 0; background: none; box-shadow: none; }
+      .paper-stage-head { display: none; }
+      .paper-preview {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        padding: 15mm 15mm 16mm 22mm;
+        border: 0;
+        box-shadow: none;
+      }
+      .paper-preview::after { color: rgba(182, 69, 49, .035); }
+      .print-only { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">A2E</div>
+      <div>
+        <strong>AI-Sample2Exam · 408</strong>
+        <small>样例卷驱动的可验证自动出题与个性化模考</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="demo-tag">第一周原型 · 契约 v0.1.0 · 演示数据</span>
+      <div class="role-switch" aria-label="切换角色">
+        <button class="active" data-role="teacher">教师端</button>
+        <button data-role="student">学生端</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <p class="sidebar-label" id="nav-label">教师工作流</p>
+      <nav class="nav-list" aria-label="页面导航">
+        <button class="nav-btn active" data-page="t-dashboard" data-role-nav="teacher"><span class="nav-index">01</span>工作台</button>
+        <button class="nav-btn" data-page="t-upload" data-role-nav="teacher"><span class="nav-index">02</span>样例卷</button>
+        <button class="nav-btn" data-page="t-blueprint" data-role-nav="teacher"><span class="nav-index">03</span>试卷蓝图</button>
+        <button class="nav-btn" data-page="t-generate" data-role-nav="teacher"><span class="nav-index">04</span>生成与验证</button>
+        <button class="nav-btn" data-page="t-review" data-role-nav="teacher"><span class="nav-index">05</span>人工审核</button>
+        <button class="nav-btn" data-page="t-paper" data-role-nav="teacher"><span class="nav-index">06</span>组卷与导出</button>
+        <button class="nav-btn" data-page="s-home" data-role-nav="student" hidden><span class="nav-index">A</span>学习首页</button>
+        <button class="nav-btn" data-page="s-exam" data-role-nav="student" hidden><span class="nav-index">B</span>408 模考</button>
+        <button class="nav-btn" data-page="s-result" data-role-nav="student" hidden><span class="nav-index">C</span>结果报告</button>
+      </nav>
+      <div class="sidebar-note">
+        <strong>原型边界</strong><br>
+        数据均为演示值。生成、验证、IRT 和导出接口将在后续联调时替换。
+      </div>
+    </aside>
+
+    <main>
+      <section class="page active" id="t-dashboard">
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">Teacher workspace</p>
+            <h1>408 出题工作台</h1>
+            <p class="subtitle">先确认试卷结构，再生成、验证和审核题目。所有模型输出必须经过规则校验与教师决策后才能组卷。</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn ghost" data-go="t-blueprint">查看演示蓝图</button>
+            <button class="btn primary" data-go="t-upload">上传样例卷 →</button>
+          </div>
+        </div>
+
+        <article class="hero-card">
+          <span class="hero-kicker">EXAM BLUEPRINT · 408</span>
+          <h2 style="margin:14px 0 8px;font-size:clamp(26px,4vw,40px);">生成不是终点，可验证的整卷结构才是。</h2>
+          <p>以 408 四科结构、题型比例、知识点覆盖和难度梯度为约束，将候选题目送入自动验证与教师审核队列。</p>
+          <div class="hero-actions">
+            <button class="btn primary" data-go="t-generate">继续上次任务</button>
+            <button class="btn" style="border-color:rgba(255,255,255,.22);color:#fff;background:rgba(255,255,255,.08)" data-go="s-home" data-role-jump="student">打开学生端</button>
+          </div>
+        </article>
+
+        <div class="grid grid-4" style="margin-top:16px">
+          <div class="stat"><span class="stat-label">样例卷</span><strong>3</strong><small>2 已确认 · 1 待复核</small></div>
+          <div class="stat"><span class="stat-label">候选题目</span><strong>28</strong><small>本周演示数据</small></div>
+          <div class="stat"><span class="stat-label">待人工审核</span><strong id="dashboard-review-count">6</strong><small>低置信度 2 道</small></div>
+          <div class="stat"><span class="stat-label">结构达标卷</span><strong>1</strong><small>蓝图匹配度 84%</small></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="card">
+            <div class="section-title">
+              <div><p class="eyebrow">Pipeline</p><h2>最小闭环进度</h2></div>
+              <span class="chip green">可演示</span>
+            </div>
+            <div class="flow">
+              <div class="flow-step done"><b>样例卷</b><span>已解析</span></div>
+              <div class="flow-step done"><b>蓝图</b><span>已确认</span></div>
+              <div class="flow-step done"><b>生成</b><span>28 道</span></div>
+              <div class="flow-step current"><b>验证审核</b><span>6 道待审</span></div>
+              <div class="flow-step"><b>组卷</b><span>1 份草稿</span></div>
+              <div class="flow-step"><b>导出</b><span>待发布</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title">
+              <div><p class="eyebrow">This week</p><h2>今日建议</h2></div>
+              <span class="chip amber">优先级 P0</span>
+            </div>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon">1</span><div><b>完成 408 蓝图字段评审</b><small>确认四科分布、题型和难度字段</small></div><button class="btn small" data-go="t-blueprint">查看</button></div>
+              <div class="check-row"><span class="check-icon warn">2</span><div><b>处理 2 道低置信度题目</b><small>答案一致性或难度估计需要教师判断</small></div><button class="btn small" data-go="t-review">审核</button></div>
+              <div class="check-row"><span class="check-icon">3</span><div><b>走查学生端完整流程</b><small>验证薄弱点报告是否能导向下一步练习</small></div><button class="btn small" data-go="s-home" data-role-jump="student">预览</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="t-upload">
+        <div class="page-head">
+          <div><p class="eyebrow">Step 01 · Input</p><h1>上传并解析 408 样例卷</h1><p class="subtitle">一期优先处理格式规整的 DOCX/PDF。解析结果先进入人工确认，不直接用于生成。</p></div>
+          <span class="chip amber">演示文件不会上传服务器</span>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="dropzone" id="dropzone">
+              <div>
+                <div class="upload-icon">↑</div>
+                <h2>拖入样例卷，或选择文件</h2>
+                <p class="muted">支持 .docx / .pdf，建议小于 20 MB</p>
+                <input id="file-input" type="file" accept=".docx,.pdf" hidden>
+                <div class="head-actions" style="justify-content:center">
+                  <button class="btn primary" id="choose-file">选择文件</button>
+                  <button class="btn" id="use-demo">使用演示样例卷</button>
+                </div>
+                <p class="tiny muted" style="margin-top:13px">演示卷为自拟内容，仅用于流程评审。</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Parser</p><h2>解析任务</h2></div><span class="chip" id="parse-status">等待文件</span></div>
+            <div id="file-summary" class="notice info">尚未选择文件。可使用右侧演示入口继续体验流程。</div>
+            <div class="progress-wrap">
+              <div class="progress-label"><span id="progress-title">准备解析</span><span id="progress-number">0%</span></div>
+              <div class="progress"><span id="progress-bar"></span></div>
+            </div>
+            <div class="parse-log" id="parse-log" aria-live="polite">
+              <div>检查文件头和格式</div>
+              <div>抽取文本与题号</div>
+              <div>识别题型、分值与科目</div>
+              <div>推断知识点和难度梯度</div>
+              <div>生成待确认的试卷蓝图</div>
+            </div>
+            <button class="btn green" id="to-blueprint" style="margin-top:16px;width:100%" disabled>解析完成，检查蓝图 →</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="t-blueprint">
+        <div class="page-head">
+          <div><p class="eyebrow">Step 02 · Blueprint</p><h1>确认 408 试卷蓝图</h1><p class="subtitle">从样例卷学习整卷结构。黄色字段是推断值，必须在生成前由教师确认。</p></div>
+          <div class="head-actions">
+            <button class="btn" id="save-blueprint">保存修改</button>
+            <button class="btn primary" data-go="t-generate">确认并生成 →</button>
+          </div>
+        </div>
+
+        <div class="grid grid-4">
+          <div class="stat"><span class="stat-label">样例卷</span><strong style="font-size:20px">2025 · 408-DEMO</strong><small>自拟演示数据</small></div>
+          <div class="stat"><span class="stat-label">总分 / 时长</span><strong>150 <small>分</small></strong><small>180 分钟</small></div>
+          <div class="stat"><span class="stat-label">题量</span><strong>47</strong><small>选择题 40 + 综合 7</small></div>
+          <div class="stat"><span class="stat-label">蓝图置信度</span><strong>86<small>%</small></strong><small>2 个字段待复核</small></div>
+        </div>
+
+        <div class="grid grid-3" style="margin-top:16px">
+          <div class="card span-2">
+            <div class="section-title"><div><p class="eyebrow">Subject distribution</p><h2>四科题目分布</h2></div><span class="chip green">已识别</span></div>
+            <div class="subject-row"><div><span class="subject-code">DS</span> 数据结构</div><div class="bar"><span style="width:100%"></span></div><div class="count">13</div></div>
+            <div class="subject-row"><div><span class="subject-code">CO</span> 计算机组成原理</div><div class="bar orange"><span style="width:100%"></span></div><div class="count">13</div></div>
+            <div class="subject-row"><div><span class="subject-code">OS</span> 操作系统</div><div class="bar blue"><span style="width:92%"></span></div><div class="count">12</div></div>
+            <div class="subject-row"><div><span class="subject-code">CN</span> 计算机网络</div><div class="bar amber"><span style="width:69%"></span></div><div class="count">9</div></div>
+            <div class="notice info" style="margin-top:15px">分布以演示卷为准。真实解析后由后端返回，页面不硬编码任何年份题量。</div>
+          </div>
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Type mix</p><h2>题型结构</h2></div><span class="chip">2 类</span></div>
+            <div class="subject-row"><div>选择题</div><div class="bar"><span style="width:85%"></span></div><div class="count">40</div></div>
+            <div class="subject-row"><div>综合/算法题</div><div class="bar orange"><span style="width:15%"></span></div><div class="count">7</div></div>
+            <div style="margin-top:18px"><span class="chip amber">推断字段</span></div>
+            <div class="field" style="margin-top:9px">
+              <label for="difficulty-mode">难度标签来源</label>
+              <select id="difficulty-mode"><option>模型推断 + 教师确认</option><option>按教师人工标注</option><option>按往年统计分布</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="section-title"><div><p class="eyebrow">Editable constraints</p><h2>本期生成约束</h2></div><span class="chip blue">可编辑</span></div>
+          <div class="form-grid">
+            <div class="field"><label for="paper-score">总分</label><input id="paper-score" type="number" value="150" min="1" max="300"></div>
+            <div class="field"><label for="paper-minutes">时长（分钟）</label><input id="paper-minutes" type="number" value="180" min="30" max="300"></div>
+            <div class="field"><label for="choice-count">选择题数</label><input id="choice-count" type="number" value="40" min="0"></div>
+            <div class="field"><label for="essay-count">综合/算法题数</label><input id="essay-count" type="number" value="7" min="0"></div>
+            <div class="field"><label for="easy-ratio">简单题比例</label><input id="easy-ratio" type="number" value="30" min="0" max="100"></div>
+            <div class="field"><label for="medium-ratio">中等题比例</label><input id="medium-ratio" type="number" value="50" min="0" max="100"></div>
+            <div class="field"><label for="hard-ratio">困难题比例</label><input id="hard-ratio" type="number" value="20" min="0" max="100"></div>
+            <div class="field"><label for="language">算法题语言</label><select id="language"><option>C/C++</option><option>Python</option><option>不限</option></select></div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label for="key-topics">重点知识点</label>
+            <textarea id="key-topics" rows="3">二叉树遍历与线索二叉树；Cache 映射；进程同步与死锁；TCP 拥塞控制</textarea>
+            <span class="field-note">正式版从知识图谱选择；此处用分号分隔作为原型输入。</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="t-generate">
+        <div class="page-head">
+          <div><p class="eyebrow">Step 03 · Generate & validate</p><h1>生成与验证题目</h1><p class="subtitle">生成、自动验证和难度估计分别展示。失败原因必须可解释，不能只返回一个总分。</p></div>
+          <button class="btn primary" id="generate-btn">生成下一批 8 道</button>
+        </div>
+
+        <div class="grid grid-4">
+          <div class="stat"><span class="stat-label">已生成</span><strong id="gen-total">8</strong><small>本批次候选</small></div>
+          <div class="stat"><span class="stat-label">Schema 通过</span><strong>8 / 8</strong><small class="muted">结构完整</small></div>
+          <div class="stat"><span class="stat-label">自动验证通过</span><strong>6 / 8</strong><small>有效题目率 75%</small></div>
+          <div class="stat"><span class="stat-label">需人工审核</span><strong id="gen-review">3</strong><small>含 2 道低置信度</small></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Generation request</p><h2>本批约束</h2></div><span class="chip green">已冻结</span></div>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon">DS</span><div><b>数据结构 · 2 道</b><small>二叉树遍历、图的最短路径</small></div><span class="chip">选择题</span></div>
+              <div class="check-row"><span class="check-icon">CO</span><div><b>组成原理 · 2 道</b><small>Cache 映射、指令流水线</small></div><span class="chip">选择题</span></div>
+              <div class="check-row"><span class="check-icon">OS</span><div><b>操作系统 · 2 道</b><small>进程同步、虚拟内存</small></div><span class="chip">选择题</span></div>
+              <div class="check-row"><span class="check-icon">CN</span><div><b>计算机网络 · 2 道</b><small>TCP 拥塞控制、子网划分</small></div><span class="chip">选择题</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Validation report</p><h2>自动验证证据</h2></div><span class="chip amber">6 通过 / 2 告警</span></div>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon">✓</span><div><b>答案一致性与唯一性</b><small>8 道题均可由解析和规则复核</small></div><span class="chip green">通过</span></div>
+              <div class="check-row"><span class="check-icon">✓</span><div><b>语义重复率</b><small>与现有题库最高相似度 0.71</small></div><span class="chip green">通过</span></div>
+              <div class="check-row"><span class="check-icon warn">!</span><div><b>知识点命中</b><small>1 道题的标签过粗，需要教师确认</small></div><span class="chip amber">告警</span></div>
+              <div class="check-row"><span class="check-icon warn">!</span><div><b>代码测试</b><small>算法题用例暂未接入，标记待验证</small></div><span class="chip amber">待接入</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="section-title"><div><p class="eyebrow">Candidates</p><h2>候选题目</h2></div><button class="btn small" data-go="t-review">进入审核队列 →</button></div>
+          <div class="grid grid-2" id="generated-grid">
+            <article class="question-card">
+              <div class="question-meta"><span class="chip">DS</span><span class="chip">选择题</span><span class="chip green">验证通过</span></div>
+              <h3 class="question-title">对一棵有 1023 个结点的完全二叉树按层编号，编号为 512 的结点（ ）。</h3>
+              <div class="options"><div class="option">A. 是叶子结点</div><div class="option">B. 只有左孩子</div><div class="option">C. 只有右孩子</div><div class="option">D. 有两个孩子</div></div>
+              <div class="question-foot"><span class="tiny muted">答案：A · 难度估计：中 · 置信度 0.91</span><button class="btn small" data-go="t-review">详情</button></div>
+            </article>
+            <article class="question-card">
+              <div class="question-meta"><span class="chip">OS</span><span class="chip">选择题</span><span class="chip amber">待人工确认</span></div>
+              <h3 class="question-title">某系统采用虚拟页式存储，访问序列表现出较高局部性。下列措施中最可能降低缺页率的是（ ）。</h3>
+              <div class="options"><div class="option">A. 增大页面大小且忽略其他影响</div><div class="option">B. 适当增大工作集窗口</div><div class="option">C. 关闭全部缓存</div><div class="option">D. 缩短进程执行时间</div></div>
+              <div class="question-foot"><span class="tiny muted">答案：B · 知识点标签待细化 · 置信度 0.68</span><button class="btn small" data-go="t-review">详情</button></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="t-review">
+        <div class="page-head">
+          <div><p class="eyebrow">Step 04 · Human review</p><h1>人工审核题目</h1><p class="subtitle">自动验证通过不等同于可直接发布。教师决定答案正确性、教学价值和最终难度。</p></div>
+          <div class="head-actions"><span class="chip amber" id="review-badge">6 道待审核</span><button class="btn primary" data-go="t-paper">生成组卷草稿 →</button></div>
+        </div>
+
+        <div class="card flat" style="margin-bottom:16px">
+          <div class="form-grid">
+            <div class="field"><label for="review-subject">科目</label><select id="review-subject"><option>全部科目</option><option>数据结构</option><option>计算机组成原理</option><option>操作系统</option><option>计算机网络</option></select></div>
+            <div class="field"><label for="review-type">题型</label><select id="review-type"><option>全部题型</option><option>选择题</option><option>综合/算法题</option></select></div>
+            <div class="field"><label for="review-status">验证状态</label><select id="review-status"><option>全部状态</option><option>待人工审核</option><option>低置信度</option><option>自动通过</option></select></div>
+            <div class="field"><label for="review-sort">排序</label><select id="review-sort"><option>低置信度优先</option><option>最新生成优先</option><option>教材顺序</option></select></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <article class="question-card review-card" data-question="q1">
+            <div class="question-meta"><span class="chip">OS</span><span class="chip">选择题</span><span class="chip amber">低置信度 · 难度 0.68</span><span class="chip">误解标签：工作集</span></div>
+            <h3 class="question-title">某系统采用虚拟页式存储，访问序列表现出较高局部性。下列措施中最可能降低缺页率的是（ ）。</h3>
+            <div class="options"><div class="option">A. 增大页面大小且忽略其他影响</div><div class="option">B. 适当增大工作集窗口</div><div class="option">C. 关闭全部缓存</div><div class="option">D. 缩短进程执行时间</div></div>
+            <div class="notice info" style="margin-top:12px">正确答案 B。干扰项 A、C 对应常见误解，D 与缺页机制关联较弱，建议教师复核。</div>
+            <div class="question-foot"><span class="tiny muted">知识点：虚拟内存 / 工作集</span><div class="review-actions"><button class="btn small danger" data-reject="q1">拒绝</button><button class="btn small" data-return="q1">退回修改</button><button class="btn small green" data-approve="q1">通过</button></div></div>
+          </article>
+          <article class="question-card review-card" data-question="q2">
+            <div class="question-meta"><span class="chip">DS</span><span class="chip">选择题</span><span class="chip green">自动通过 · 难度 0.82</span><span class="chip">误解标签：完全二叉树</span></div>
+            <h3 class="question-title">对一棵有 1023 个结点的完全二叉树按层编号，编号为 512 的结点（ ）。</h3>
+            <div class="options"><div class="option">A. 是叶子结点</div><div class="option">B. 只有左孩子</div><div class="option">C. 只有右孩子</div><div class="option">D. 有两个孩子</div></div>
+            <div class="notice success" style="margin-top:12px">答案 A 已通过结构校验和人工标注比对。知识点：二叉树性质。</div>
+            <div class="question-foot"><span class="tiny muted">知识点：树与二叉树 / 完全二叉树</span><div class="review-actions"><button class="btn small danger" data-reject="q2">拒绝</button><button class="btn small" data-return="q2">退回修改</button><button class="btn small green" data-approve="q2">通过</button></div></div>
+          </article>
+          <article class="question-card review-card" data-question="q3">
+            <div class="question-meta"><span class="chip">CO</span><span class="chip">选择题</span><span class="chip amber">知识点待确认</span><span class="chip">误解标签：Cache 命中</span></div>
+            <h3 class="question-title">在直接映射 Cache 中，若主存块号变化而块内地址不变，则（ ）保持不变。</h3>
+            <div class="options"><div class="option">A. 主存块号</div><div class="option">B. Cache 行号</div><div class="option">C. Tag 字段</div><div class="option">D. 块内偏移</div></div>
+            <div class="notice" style="margin-top:12px">模型认为答案 D 正确，但“直接映射 Cache”与“块内地址不变”的表述可能造成理解歧义，建议复核。</div>
+            <div class="question-foot"><span class="tiny muted">知识点：Cache / 直接映射</span><div class="review-actions"><button class="btn small danger" data-reject="q3">拒绝</button><button class="btn small" data-return="q3">退回修改</button><button class="btn small green" data-approve="q3">通过</button></div></div>
+          </article>
+          <article class="question-card review-card" data-question="q4">
+            <div class="question-meta"><span class="chip">CN</span><span class="chip">选择题</span><span class="chip blue">算法/用例待接入</span><span class="chip">误解标签：拥塞窗口</span></div>
+            <h3 class="question-title">TCP 发送方检测到超时后，若不考虑其他机制，拥塞窗口通常（ ）。</h3>
+            <div class="options"><div class="option">A. 保持不变</div><div class="option">B. 增大到慢开始阈值</div><div class="option">C. 降为较小值后重新慢开始</div><div class="option">D. 立即等于接收窗口</div></div>
+            <div class="notice info" style="margin-top:12px">答案 C。该题暂无代码测试场景，但其题型为概念选择题，适用规则校验。</div>
+            <div class="question-foot"><span class="tiny muted">知识点：TCP / 拥塞控制</span><div class="review-actions"><button class="btn small danger" data-reject="q4">拒绝</button><button class="btn small" data-return="q4">退回修改</button><button class="btn small green" data-approve="q4">通过</button></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="t-paper">
+        <div class="page-head">
+          <div><p class="eyebrow">Step 05 · Assemble & export</p><h1>约束组卷与导出</h1><p class="subtitle">结构检查同时报告四科覆盖、题型比例、分值、难度和知识点命中；未达标项需要解释。</p></div>
+          <div class="head-actions"><button class="btn" id="download-json">导出 JSON</button><button class="btn primary" onclick="window.print()">打印 / 另存 PDF</button></div>
+        </div>
+
+        <div class="grid grid-3" style="margin-bottom:16px">
+          <div class="stat"><span class="stat-label">蓝图匹配度</span><strong>84<small>%</small></strong><small>目标 ≥ 80%</small></div>
+          <div class="stat"><span class="stat-label">知识点覆盖</span><strong>12 / 13</strong><small>缺少「外部排序」</small></div>
+          <div class="stat"><span class="stat-label">预计难度</span><strong>0.63</strong><small>教师标注尚未回填</small></div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card no-print">
+            <div class="section-title"><div><p class="eyebrow">Constraint check</p><h2>结构检查</h2></div><span class="chip amber">1 项待处理</span></div>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon">✓</span><div><b>总分与题量</b><small>150 分 · 47 道题</small></div><span class="chip green">满足</span></div>
+              <div class="check-row"><span class="check-icon">✓</span><div><b>四科分布</b><small>DS 13 · CO 13 · OS 12 · CN 9</small></div><span class="chip green">满足</span></div>
+              <div class="check-row"><span class="check-icon">✓</span><div><b>题型比例</b><small>选择题 40 · 综合/算法 7</small></div><span class="chip green">满足</span></div>
+              <div class="check-row"><span class="check-icon warn">!</span><div><b>知识点覆盖</b><small>「外部排序」未被本次候选题目覆盖</small></div><span class="chip amber">调整</span></div>
+              <div class="check-row"><span class="check-icon warn">!</span><div><b>难度分布</b><small>困难题比目标少 1 道</small></div><span class="chip amber">调整</span></div>
+            </div>
+            <div class="head-actions" style="margin-top:14px"><button class="btn" id="fix-paper">自动建议替换</button><button class="btn green" id="publish-paper">接受当前方案</button></div>
+          </div>
+          <div class="card no-print">
+            <div class="section-title"><div><p class="eyebrow">Personalization</p><h2>学生个性化权重</h2></div><span class="chip blue">演示学生</span></div>
+            <div class="subject-row"><div>二叉树遍历</div><div class="bar orange"><span style="width:76%"></span></div><div class="count">高</div></div>
+            <div class="subject-row"><div>进程同步</div><div class="bar orange"><span style="width:64%"></span></div><div class="count">高</div></div>
+            <div class="subject-row"><div>TCP 拥塞控制</div><div class="bar"><span style="width:46%"></span></div><div class="count">中</div></div>
+            <div class="notice info" style="margin-top:15px">权重由薄弱点报告提供。正式结果必须记录数据来源和计算版本，演示值不可写入实验结论。</div>
+          </div>
+        </div>
+
+        <div class="paper-stage">
+          <div class="paper-stage-head no-print">
+            <span>A4 试卷预览 · 红线和装订区域仅作视觉提示</span>
+            <span>当前为自拟演示题，不是正式考试卷</span>
+          </div>
+          <article class="paper-preview" aria-label="408 演示试卷预览">
+            <div class="paper-topline">
+              <div class="paper-issue">
+                PAPER ID&nbsp;&nbsp;A2E-408-20261119-001<br>
+                REVIEW&nbsp;&nbsp;&nbsp;TEACHER SEAL REQUIRED
+              </div>
+              <div class="paper-seal">AI-SAMPLE<br>演示卷<br>待审核</div>
+            </div>
+            <p class="paper-sub" style="letter-spacing:.28em;font-weight:700">绝密 ★ 演示材料</p>
+            <h2>408 计算机学科专业基础</h2>
+            <p class="paper-sub">AI-Sample2Exam 个性化模考试卷（演示节选）</p>
+            <div class="paper-rule"></div>
+            <div class="exam-meta-grid">
+              <div><span>考生姓名：</span><b>________________</b></div>
+              <div><span>考生编号：</span>____________</div>
+              <div><span>满分：</span><b>150 分</b>　<span>时长：</span><b>180 分钟</b></div>
+            </div>
+            <div class="exam-score-table">
+              <div class="score-head">题号</div>
+              <div class="score-head">一</div>
+              <div class="score-head">二</div>
+              <div class="score-head">总分</div>
+              <div class="score-head">复核</div>
+              <div class="score-head">得分</div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <div class="exam-note">
+              <b>注意事项</b><br>
+              1. 答题前请核对试卷编号、考试科目和页数；演示稿不用于真实考试或成绩评定。<br>
+              2. 选择题答案须写在指定区域，综合题答案应包含必要步骤；算法题需给出核心思想、数据结构与复杂度分析。
+            </div>
+            <div class="exam-section">一、单项选择题（演示节选，每题 2 分）</div>
+            <div class="exam-question">
+              <p>1. 对一棵有 1023 个结点的完全二叉树按层编号，编号为 512 的结点（　　）。</p>
+              <div class="exam-choice-row">
+                <div class="exam-choice" data-label="A">是叶子结点</div>
+                <div class="exam-choice" data-label="B">只有左孩子</div>
+                <div class="exam-choice" data-label="C">只有右孩子</div>
+                <div class="exam-choice" data-label="D">有两个孩子</div>
+              </div>
+            </div>
+            <div class="exam-question">
+              <p>2. 某系统采用虚拟页式存储，访问序列表现出较高局部性。下列措施中最可能降低缺页率的是（　　）。</p>
+              <div class="exam-choice-row">
+                <div class="exam-choice" data-label="A">增大页面大小且忽略其他影响</div>
+                <div class="exam-choice" data-label="B">适当增大工作集窗口</div>
+                <div class="exam-choice" data-label="C">关闭全部缓存</div>
+                <div class="exam-choice" data-label="D">缩短进程执行时间</div>
+              </div>
+            </div>
+            <div class="exam-section">二、综合应用题（演示占位）</div>
+            <div class="exam-question">
+              <p>7. 给定一组 408 四科知识点及其依赖关系，请设计算法生成满足指定覆盖约束的练习序列。要求：</p>
+              <p>（1）说明所用数据结构与核心步骤；</p>
+              <p>（2）分析时间复杂度和空间复杂度；</p>
+              <p>（3）若约束不可同时满足，给出可解释的降级策略。</p>
+              <div class="exam-answer-lines"></div>
+            </div>
+            <div class="exam-footer">
+              <span>AI-SAMPLE2EXAM · 408 DEMO</span>
+              <span>第 1 页 / 共 1 页</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="s-home">
+        <div class="page-head">
+          <div><p class="eyebrow">Student space</p><h1>学生学习首页</h1><p class="subtitle">学生只看到自己的学习状态、可执行练习和可解释反馈；不暴露模型内部标签或模拟排名。</p></div>
+          <span class="chip green">演示学生 · 408 冲刺</span>
+        </div>
+        <div class="student-hero">
+          <article class="card">
+            <p class="eyebrow" style="color:#f9cdb9">Next recommended</p>
+            <h2 style="font-family:Georgia,'Songti SC',serif;font-size:30px">408 个性化模考</h2>
+            <p>根据最近一次练习，优先安排二叉树遍历、进程同步和 TCP 拥塞控制。</p>
+            <div class="path-list">
+              <div class="path-item"><div><b>整卷模考</b><small>47 题 · 150 分 · 180 分钟</small></div><button class="btn small" data-go="s-exam">开始</button></div>
+              <div class="path-item"><div><b>薄弱点练习</b><small>12 题 · 约 30 分钟 · 3 个知识点</small></div><button class="btn small" data-go="s-exam">开始</button></div>
+              <div class="path-item"><div><b>错题相关</b><small>8 题 · 约 20 分钟 · 2 个科目</small></div><button class="btn small" data-go="s-exam">开始</button></div>
+            </div>
+          </article>
+          <aside class="card">
+            <p class="eyebrow">Weak topics</p>
+            <h2>本周薄弱点</h2>
+            <div class="weak-list">
+              <div class="weak-item"><span>二叉树遍历</span><div class="bar orange"><span style="width:38%"></span></div><b>38%</b></div>
+              <div class="weak-item"><span>进程同步</span><div class="bar orange"><span style="width:44%"></span></div><b>44%</b></div>
+              <div class="weak-item"><span>TCP 拥塞控制</span><div class="bar"><span style="width:56%"></span></div><b>56%</b></div>
+            </div>
+            <div class="notice info" style="margin-top:18px">这些比例来自演示作答，用于验证报告流程，不代表真实学习效果。</div>
+          </aside>
+        </div>
+        <div class="grid grid-3" style="margin-top:16px">
+          <div class="stat"><span class="stat-label">已完成模考</span><strong>3</strong><small>最近一次 102 / 150</small></div>
+          <div class="stat"><span class="stat-label">错题回顾</span><strong>17</strong><small>待复习 6 道</small></div>
+          <div class="stat"><span class="stat-label">本周学习</span><strong>4.5 <small>小时</small></strong><small>建议每次 40 分钟</small></div>
+        </div>
+      </section>
+
+      <section class="page" id="s-exam">
+        <div class="page-head">
+          <div><p class="eyebrow">Mock exam · demo</p><h1>408 选择题演示模考</h1><p class="subtitle">原型仅展示 3 道自拟题，验证计时、作答、提交和结果反馈流程。</p></div>
+          <span class="chip amber">演示数据</span>
+        </div>
+        <div class="exam-shell">
+          <div class="card">
+            <div class="question-meta"><span class="chip" id="exam-subject">数据结构</span><span class="chip">第 1 / 3 题</span><span class="chip">2 分</span></div>
+            <h2 id="exam-title" style="margin:15px 0">下列数据结构中，最适合实现“后进先出”操作的是（ ）。</h2>
+            <div class="answer-list" id="answer-list">
+              <label class="answer-option"><input type="radio" name="answer" value="A"><span>A. 队列</span></label>
+              <label class="answer-option"><input type="radio" name="answer" value="B"><span>B. 栈</span></label>
+              <label class="answer-option"><input type="radio" name="answer" value="C"><span>C. 完全图</span></label>
+              <label class="answer-option"><input type="radio" name="answer" value="D"><span>D. 哈希表</span></label>
+            </div>
+            <div class="question-foot">
+              <button class="btn" id="prev-question" disabled>上一题</button>
+              <div class="head-actions"><button class="btn" data-go="s-home">退出</button><button class="btn primary" id="next-question">下一题</button></div>
+            </div>
+          </div>
+          <aside class="card exam-nav">
+            <span class="tiny muted">已用时间</span>
+            <div class="timer" id="exam-timer">00:00</div>
+            <div class="number-grid" id="number-grid">
+              <button class="active" data-q-index="0">1</button>
+              <button data-q-index="1">2</button>
+              <button data-q-index="2">3</button>
+            </div>
+            <button class="btn primary" id="submit-exam" style="width:100%;margin-top:16px">提交试卷</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="s-result">
+        <div class="page-head">
+          <div><p class="eyebrow">Result report</p><h1>模考结果与薄弱点</h1><p class="subtitle">显示得分、知识点表现和错因；模拟学生估计与教师标注必须明确区分。</p></div>
+          <div class="head-actions"><button class="btn" data-go="s-home">返回首页</button><button class="btn primary" data-go="s-exam">针对薄弱点再练</button></div>
+        </div>
+        <div class="grid grid-3">
+          <div class="card" style="text-align:center">
+            <div class="score-ring" id="score-ring" style="--score:67"><div><strong id="score-value">4</strong><span>/ 6 分</span></div></div>
+            <span class="chip green" id="score-label">演示结果</span>
+            <p class="tiny muted" style="margin:12px 0 0">用时 01:42 · 3 道题</p>
+          </div>
+          <div class="card span-2">
+            <div class="section-title"><div><p class="eyebrow">By subject</p><h2>分科表现</h2></div><span class="chip">演示值</span></div>
+            <div class="subject-row"><div>数据结构</div><div class="bar orange"><span id="ds-bar" style="width:100%"></span></div><div class="count" id="ds-score">2/2</div></div>
+            <div class="subject-row"><div>计算机组成原理</div><div class="bar"><span id="co-bar" style="width:100%"></span></div><div class="count" id="co-score">2/2</div></div>
+            <div class="subject-row"><div>操作系统</div><div class="bar blue"><span id="os-bar" style="width:0%"></span></div><div class="count" id="os-score">0/2</div></div>
+            <div class="notice info" style="margin-top:15px">正式版将按知识点、题型和难度拆分，不用单次小样本过度推断能力。</div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Diagnosis</p><h2>错因与下一步</h2></div><span class="chip amber">2 个薄弱点</span></div>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon warn">1</span><div><b>进程同步：互斥与等待条件混淆</b><small>建议先完成 3 道条件变量辨析题，再进行综合练习。</small></div><span class="chip">高优先级</span></div>
+              <div class="check-row"><span class="check-icon warn">2</span><div><b>TCP 拥塞控制：窗口变化记忆不牢</b><small>建议结合一条时间线复述慢开始、拥塞避免和快速恢复。</small></div><span class="chip">中优先级</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title"><div><p class="eyebrow">Transparency</p><h2>结果说明</h2></div><span class="chip blue">可追溯</span></div>
+            <p class="muted">当前得分来自你的作答；题目难度为模拟学生模型估计，尚未代表真实考生群体难度。教师审核通过的题目会标注审核版本。</p>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon">✓</span><div><b>作答记录已保存</b><small>支持错题回顾与知识点关联</small></div><span class="chip green">是</span></div>
+              <div class="check-row"><span class="check-icon">✓</span><div><b>个性化建议可解释</b><small>每条建议关联具体错误和知识点</small></div><span class="chip green">是</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const state = {
+      role: "teacher",
+      currentPage: "t-dashboard",
+      parsing: false,
+      generated: false,
+      approved: new Set(),
+      rejected: new Set(),
+      questionIndex: 0,
+      answers: {},
+      submitted: false,
+      startedAt: Date.now()
+    };
+
+    // Fields mirror core.schemas.MCQuestion from feature/dyh-llm.
+    const questions = [
+      {
+        question_id: "Q-DS-0002",
+        question_type: "multiple_choice",
+        stem: "下列数据结构中，最适合实现“后进先出”操作的是（ ）。",
+        options: { A: "队列", B: "栈", C: "完全图", D: "哈希表" },
+        answer: "B",
+        knowledge_point: "DS.LINEAR.STACK",
+        difficulty: "easy",
+        bloom_level: "remember",
+        misconception_tag: "DS.MIS.LIFO_QUEUE_CONFUSION",
+        analysis: "栈遵循后进先出原则，最后压入的元素最先弹出。",
+        source: "self_authored"
+      },
+      {
+        question_id: "Q-CO-0002",
+        question_type: "multiple_choice",
+        stem: "CPU 从主存储器取出一条指令并送入指令寄存器，这一阶段通常称为（ ）。",
+        options: { A: "取指", B: "译码", C: "执行", D: "写回" },
+        answer: "A",
+        knowledge_point: "CO.CPU.INSTRUCTION_CYCLE",
+        difficulty: "easy",
+        bloom_level: "understand",
+        misconception_tag: "CO.MIS.FETCH_DECODE_CONFUSION",
+        analysis: "将指令从主存储器取到 CPU 并送入指令寄存器属于取指阶段。",
+        source: "self_authored"
+      },
+      {
+        question_id: "Q-OS-0002",
+        question_type: "multiple_choice",
+        stem: "若多个进程需要访问同一临界资源，最基本的约束是（ ）。",
+        options: { A: "并发访问", B: "互斥访问", C: "按优先级访问", D: "随机访问" },
+        answer: "B",
+        knowledge_point: "OS.PROCESS.SYNCHRONIZATION.MUTUAL_EXCLUSION",
+        difficulty: "easy",
+        bloom_level: "remember",
+        misconception_tag: "OS.MIS.CRITICAL_SECTION_CONCURRENT_ACCESS",
+        analysis: "临界资源在同一时刻通常只能由一个进程使用，因此最基本的约束是互斥访问。",
+        source: "self_authored"
+      }
+    ];
+
+    // Display-only metadata is intentionally kept outside MCQuestion.
+    const questionDisplayMeta = {
+      "Q-DS-0002": { subject: "数据结构", score: 2 },
+      "Q-CO-0002": { subject: "计算机组成原理", score: 2 },
+      "Q-OS-0002": { subject: "操作系统", score: 2 }
+    };
+
+    // API contract v0.1.0. Business endpoints still return success=false stubs.
+    const apiClient = {
+      baseUrl: "http://127.0.0.1:8000",
+      async request(path, body) {
+        const response = await fetch(`${this.baseUrl}${path}`, {
+          method: body === undefined ? "GET" : "POST",
+          headers: body === undefined ? {} : { "Content-Type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        if (typeof payload.success !== "boolean") {
+          throw new Error("响应不符合 BaseResponse 契约");
+        }
+        return payload;
+      },
+      parseExam(exam_text, subject = "数据结构") {
+        return this.request("/api/exam/parse", { exam_text, subject });
+      },
+      generateQuestions(request) {
+        return this.request("/api/question/generate", request);
+      },
+      validateQuestion(question) {
+        return this.request("/api/question/validate", { question });
+      },
+      calibrateDifficulty(questions, method = "simulated_student_irt") {
+        return this.request("/api/question/calibrate", { questions, method });
+      },
+      composePaper(question_pool, blueprint) {
+        return this.request("/api/paper/compose", { question_pool, blueprint });
+      }
+    };
+    window.A2E_API = apiClient;
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    function showToast(message) {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function showPage(pageId) {
+      const page = document.getElementById(pageId);
+      if (!page) return;
+      if (pageId.startsWith("s-")) setRole("student", false);
+      if (pageId.startsWith("t-")) setRole("teacher", false);
+      $$(".page").forEach(el => el.classList.toggle("active", el === page));
+      $$(".nav-btn").forEach(el => el.classList.toggle("active", el.dataset.page === pageId));
+      state.currentPage = pageId;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (pageId === "s-exam" && !state.submitted) startExamTimer();
+    }
+
+    function setRole(role, navigate = true) {
+      state.role = role;
+      $$(".role-switch button").forEach(btn => btn.classList.toggle("active", btn.dataset.role === role));
+      $$("[data-role-nav]").forEach(btn => {
+        btn.hidden = btn.dataset.roleNav !== role;
+      });
+      $("#nav-label").textContent = role === "teacher" ? "教师工作流" : "学生学习流";
+      if (navigate) showPage(role === "teacher" ? "t-dashboard" : "s-home");
+    }
+
+    document.addEventListener("click", event => {
+      const goBtn = event.target.closest("[data-go]");
+      if (goBtn) {
+        if (goBtn.dataset.roleJump) setRole(goBtn.dataset.roleJump, false);
+        showPage(goBtn.dataset.go);
+        return;
+      }
+      const navBtn = event.target.closest("[data-page]");
+      if (navBtn) {
+        showPage(navBtn.dataset.page);
+        return;
+      }
+      const roleBtn = event.target.closest("[data-role]");
+      if (roleBtn) setRole(roleBtn.dataset.role);
+    });
+
+    $("#choose-file").addEventListener("click", () => $("#file-input").click());
+    $("#file-input").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) startParsing(file.name, `${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    });
+
+    const dropzone = $("#dropzone");
+    ["dragenter", "dragover"].forEach(type => dropzone.addEventListener(type, event => {
+      event.preventDefault();
+      dropzone.classList.add("dragging");
+    }));
+    ["dragleave", "drop"].forEach(type => dropzone.addEventListener(type, event => {
+      event.preventDefault();
+      dropzone.classList.remove("dragging");
+    }));
+    dropzone.addEventListener("drop", event => {
+      const file = event.dataTransfer.files[0];
+      if (!file) return;
+      if (!/\.(docx|pdf)$/i.test(file.name)) {
+        showToast("仅支持 DOCX 或 PDF 文件");
+        return;
+      }
+      startParsing(file.name, `${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    });
+    $("#use-demo").addEventListener("click", () => startParsing("2025_408_演示样例卷.docx", "1.84 MB"));
+
+    function startParsing(name, size) {
+      if (state.parsing) return;
+      state.parsing = true;
+      $("#parse-status").textContent = "解析中";
+      $("#parse-status").className = "chip amber";
+      $("#file-summary").className = "notice info";
+      $("#file-summary").innerHTML = `<b>${escapeHtml(name)}</b><br><span class="tiny">${size} · 自拟演示文件 · 未上传服务器</span>`;
+      $("#to-blueprint").disabled = true;
+      const logs = $$("#parse-log div");
+      logs.forEach(el => el.classList.remove("on"));
+      const steps = [0, 1, 2, 3, 4];
+      let step = 0;
+      const advance = () => {
+        if (step >= steps.length) {
+          state.parsing = false;
+          $("#parse-status").textContent = "解析完成";
+          $("#parse-status").className = "chip green";
+          $("#progress-title").textContent = "蓝图待确认";
+          $("#to-blueprint").disabled = false;
+          showToast("演示样例卷解析完成，请检查蓝图");
+          return;
+        }
+        logs[step].classList.add("on");
+        const pct = (step + 1) * 20;
+        $("#progress-bar").style.width = `${pct}%`;
+        $("#progress-number").textContent = `${pct}%`;
+        $("#progress-title").textContent = ["读取文件", "抽取题目", "识别结构", "映射知识点", "生成蓝图"][step];
+        step += 1;
+        setTimeout(advance, 520);
+      };
+      advance();
+    }
+
+    $("#to-blueprint").addEventListener("click", () => showPage("t-blueprint"));
+    $("#save-blueprint").addEventListener("click", () => {
+      const easy = Number($("#easy-ratio").value);
+      const mid = Number($("#medium-ratio").value);
+      const hard = Number($("#hard-ratio").value);
+      if (easy + mid + hard !== 100) {
+        showToast("简单、中等、困难比例之和应为 100%");
+        return;
+      }
+      showToast("蓝图修改已保存（演示状态）");
+    });
+
+    $("#generate-btn").addEventListener("click", () => {
+      const btn = $("#generate-btn");
+      btn.disabled = true;
+      btn.textContent = "正在生成与验证…";
+      setTimeout(() => {
+        state.generated = true;
+        $("#gen-total").textContent = "16";
+        $("#gen-review").textContent = "7";
+        btn.disabled = false;
+        btn.textContent = "再生成一批";
+        showToast("演示批次已生成：8 道候选，6 道通过规则校验");
+        $("#generated-grid").insertAdjacentHTML("beforeend", `
+          <article class="question-card">
+            <div class="question-meta"><span class="chip">CN</span><span class="chip">选择题</span><span class="chip amber">低置信度</span></div>
+            <h3 class="question-title">TCP 发送方检测到超时后，若不考虑其他机制，拥塞窗口通常（ ）。</h3>
+            <div class="options"><div class="option">A. 保持不变</div><div class="option">B. 增大到慢开始阈值</div><div class="option">C. 降为较小值后重新慢开始</div><div class="option">D. 立即等于接收窗口</div></div>
+            <div class="question-foot"><span class="tiny muted">答案：C · 难度估计：中 · 置信度 0.62</span><button class="btn small" data-go="t-review">详情</button></div>
+          </article>
+          <article class="question-card">
+            <div class="question-meta"><span class="chip">CO</span><span class="chip">选择题</span><span class="chip green">验证通过</span></div>
+            <h3 class="question-title">在直接映射 Cache 中，若主存块号变化而块内地址不变，则（ ）保持不变。</h3>
+            <div class="options"><div class="option">A. 主存块号</div><div class="option">B. Cache 行号</div><div class="option">C. Tag 字段</div><div class="option">D. 块内偏移</div></div>
+            <div class="question-foot"><span class="tiny muted">答案：D · 知识点待复核 · 置信度 0.79</span><button class="btn small" data-go="t-review">详情</button></div>
+          </article>`);
+      }, 1150);
+    });
+
+    function updateReviewCounts() {
+      const handled = state.approved.size + state.rejected.size;
+      const remaining = Math.max(0, 6 - handled);
+      $("#review-badge").textContent = `${remaining} 道待审核`;
+      $("#dashboard-review-count").textContent = remaining;
+      if (remaining === 0) $("#review-badge").className = "chip green";
+    }
+
+    document.addEventListener("click", event => {
+      const approve = event.target.closest("[data-approve]");
+      const reject = event.target.closest("[data-reject]");
+      const returnBtn = event.target.closest("[data-return]");
+      const id = approve?.dataset.approve || reject?.dataset.reject || returnBtn?.dataset.return;
+      if (!id) return;
+      const card = document.querySelector(`[data-question="${id}"]`);
+      if (!card) return;
+      if (approve) {
+        state.approved.add(id);
+        card.style.opacity = ".55";
+        card.querySelector(".review-actions").innerHTML = '<span class="chip green">已通过</span>';
+        showToast("题目已通过审核");
+      } else if (reject) {
+        state.rejected.add(id);
+        card.style.opacity = ".55";
+        card.querySelector(".review-actions").innerHTML = '<span class="chip red">已拒绝</span>';
+        showToast("题目已拒绝；正式版需选择拒绝原因");
+      } else {
+        showToast("已退回修改，并保留原验证记录");
+      }
+      updateReviewCounts();
+    });
+
+    $("#fix-paper").addEventListener("click", () => {
+      showToast("已模拟替换 1 道困难题，覆盖「外部排序」");
+    });
+    $("#publish-paper").addEventListener("click", () => {
+      showToast("已接受当前方案。正式系统会进入发布确认页");
+    });
+
+    $("#download-json").addEventListener("click", () => {
+      const payload = {
+        demo: true,
+        notice: "第一周交互原型演示数据，非真实模型输出",
+        course: "408 计算机学科专业基础",
+        blueprint: {
+          score: 150,
+          durationMinutes: 180,
+          questionCount: 47,
+          subjects: { DS: 13, CO: 13, OS: 12, CN: 9 },
+          types: { singleChoice: 40, comprehensive: 7 }
+        },
+        generatedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "408_demo_paper.json";
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("演示 JSON 已下载");
+    });
+
+    let timerHandle;
+    function startExamTimer() {
+      if (timerHandle) return;
+      const update = () => {
+        const seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const ss = String(seconds % 60).padStart(2, "0");
+        $("#exam-timer").textContent = `${mm}:${ss}`;
+      };
+      update();
+      timerHandle = setInterval(update, 1000);
+    }
+
+    function renderQuestion() {
+      const q = questions[state.questionIndex];
+      const display = questionDisplayMeta[q.question_id] || { subject: "408", score: 2 };
+      $("#exam-subject").textContent = display.subject;
+      $(".question-meta .chip:nth-child(2)", $("#s-exam")).textContent = `第 ${state.questionIndex + 1} / ${questions.length} 题`;
+      $("#exam-title").textContent = q.stem;
+      $("#answer-list").innerHTML = Object.entries(q.options).map(([letter, option]) => {
+        return `<label class="answer-option"><input type="radio" name="answer" value="${escapeHtml(letter)}" ${state.answers[state.questionIndex] === letter ? "checked" : ""}><span>${escapeHtml(letter)}. ${escapeHtml(option)}</span></label>`;
+      }).join("");
+      $("#prev-question").disabled = state.questionIndex === 0;
+      $("#next-question").textContent = state.questionIndex === questions.length - 1 ? "检查并提交" : "下一题";
+      $$("#number-grid button").forEach((btn, index) => {
+        btn.classList.toggle("active", index === state.questionIndex);
+        btn.classList.toggle("answered", Boolean(state.answers[index]));
+      });
+    }
+
+    $("#answer-list").addEventListener("change", event => {
+      if (event.target.name === "answer") {
+        state.answers[state.questionIndex] = event.target.value;
+        $$("#number-grid button").forEach((btn, index) => btn.classList.toggle("answered", Boolean(state.answers[index])));
+      }
+    });
+    $("#prev-question").addEventListener("click", () => {
+      if (state.questionIndex > 0) {
+        state.questionIndex -= 1;
+        renderQuestion();
+      }
+    });
+    $("#next-question").addEventListener("click", () => {
+      if (state.questionIndex < questions.length - 1) {
+        state.questionIndex += 1;
+        renderQuestion();
+      } else {
+        submitExam();
+      }
+    });
+    $("#number-grid").addEventListener("click", event => {
+      const btn = event.target.closest("[data-q-index]");
+      if (!btn) return;
+      state.questionIndex = Number(btn.dataset.qIndex);
+      renderQuestion();
+    });
+    $("#submit-exam").addEventListener("click", submitExam);
+
+    function submitExam() {
+      if (state.submitted) return;
+      const answered = Object.keys(state.answers).length;
+      if (answered < questions.length && !confirm(`还有 ${questions.length - answered} 道题未作答，仍要提交吗？`)) return;
+      state.submitted = true;
+      clearInterval(timerHandle);
+      timerHandle = null;
+      const correct = questions.reduce((sum, q, index) => sum + (state.answers[index] === q.answer ? 1 : 0), 0);
+      const score = correct * 2;
+      $("#score-value").textContent = score;
+      $("#score-ring").style.setProperty("--score", Math.round(score / 6 * 100));
+      $("#score-label").textContent = `答对 ${correct} / ${questions.length} 题`;
+      const ds = state.answers[0] === questions[0].answer ? 1 : 0;
+      const co = state.answers[1] === questions[1].answer ? 1 : 0;
+      $("#ds-score").textContent = `${ds}/1`;
+      $("#co-score").textContent = `${co}/1`;
+      $("#os-score").textContent = `${state.answers[2] === questions[2].answer ? 1 : 0}/1`;
+      $("#ds-bar").style.width = `${ds * 100}%`;
+      $("#co-bar").style.width = `${co * 100}%`;
+      $("#os-bar").style.width = `${(state.answers[2] === questions[2].answer ? 1 : 0) * 100}%`;
+      showPage("s-result");
+      showToast(`模考已提交：${score} / 6 分`);
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    renderQuestion();
+  </script>
+</body>
+</html>
