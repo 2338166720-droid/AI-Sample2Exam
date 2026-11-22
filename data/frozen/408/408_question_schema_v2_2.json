@@ -1,0 +1,25 @@
+{
+  "base": "408_questions_v2_1 schema",
+  "new_fields": {
+    "knowledge_points": [
+      {
+        "kp_id": "string",
+        "kp_name": "string",
+        "source_tag": "string",
+        "mapping_type": "existing|new"
+      }
+    ],
+    "knowledge_point_ids": [
+      "string"
+    ],
+    "formula_review_status": "confirmed|confirmed_after_fix|needs_review",
+    "formula_review_note": "string",
+    "quality_notes": [
+      "string"
+    ],
+    "gold_v1_spotcheck": "object; only for spot-checked gold questions",
+    "cleaning_flags": [
+      "string"
+    ]
+  }
+}

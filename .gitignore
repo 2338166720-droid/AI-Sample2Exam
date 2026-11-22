@@ -48,6 +48,10 @@ data/*
 *.pdf
 *.docx
 
+!data/frozen/
+!data/frozen/408/
+!data/frozen/408/**
+
 # ===== 其他 =====
 *.pyc
 .DS_Store
